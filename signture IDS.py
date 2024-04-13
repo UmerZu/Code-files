@@ -11,17 +11,7 @@ from sklearn.tree import DecisionTreeClassifier
 import xgboost as xgb
 from xgboost import plot_importance
 
-df = pd.read_csv('./datasets/wustl_iiot/wustl_iiot_2021.csv')
-df = df.drop(columns=['Target'])
-df = df.drop(columns=['StartTime', 'LastTime', 'SrcAddr', 'DstAddr'])
-df.Traffic.value_counts()
 
-features = df.dtypes[df.dtypes != 'object'].index
-df[features] = df[features].apply(
-    lambda x: (x - x.mean()) / (x.std()))
-# Fill empty values by 0
-df = df.fillna(0)
-labelencoder = LabelEncoder()
 df.iloc[:, -1] = labelencoder.fit_transform(df.iloc[:, -1])
 df.Traffic.value_counts()
 df_minor = df[(df['Traffic']==3)|(df['Traffic']==1)|(df['Traffic']==0)]
@@ -29,18 +19,13 @@ df_major = df.drop(df_minor.index)
 X = df_major.drop(['Traffic'],axis=1)
 y = df_major.iloc[:, -1].values.reshape(-1,1)
 y=np.ravel(y)
-from sklearn.cluster import MiniBatchKMeans
-kmeans = MiniBatchKMeans(n_clusters=1000, random_state=0).fit(X)
+
 klabel=kmeans.labels_
 df_major['klabel']=klabel
 df_major['klabel'].value_counts()
 cols = list(df_major)
 cols.insert(44, cols.pop(cols.index('Traffic')))
 df_major = df_major.loc[:, cols]
-def typicalSampling(group):
-    name = group.name
-    frac = 0.008
-    return group.sample(frac=frac)
 
 result = df_major.groupby(
     'klabel', group_keys=False
@@ -54,8 +39,6 @@ X = df.drop(['Traffic'],axis=1).values
 y = df.iloc[:, -1].values.reshape(-1,1)
 y=np.ravel(y)
 X_train, X_test, y_train, y_test = train_test_split(X,y, train_size = 0.8, test_size = 0.2, random_state = 0,stratify = y)
-from sklearn.feature_selection import mutual_info_classif
-importances = mutual_info_classif(X_train, y_train)
 f_list = sorted(zip(map(lambda x: round(x, 4), importances), features), reverse=True)
 Sum = 0
 fs = []
@@ -408,8 +391,6 @@ fcbf = FCBFK(k = 20)
 X_fss = fcbf.fit_transform(X_fs,y)
 X_train, X_test, y_train, y_test = train_test_split(X_fss,y, train_size = 0.8, test_size = 0.2, random_state = 0,stratify = y)
 pd.Series(y_train).value_counts()
-from imblearn.over_sampling import SMOTE
-smote=SMOTE(n_jobs=-1,sampling_strategy={1:1000,0:1000})
 X_train, y_train = smote.fit_resample(X_train, y_train)
 from imblearn.over_sampling import SMOTE
 smote=SMOTE(n_jobs=-1,sampling_strategy={2:1000})
@@ -435,15 +416,10 @@ et.fit(X_train,y_train)
 et_score=et.score(X_test,y_test)
 y_predict=et.predict(X_test)
 y_true=y_test
-et_train=et.predict(X_train)
-et_test=et.predict(X_test)
 from sklearn.naive_bayes import BernoulliNB
 mnb = BernoulliNB()
 #mnb.fit(X_train, Y_train)
 mnb.fit(X_train,y_train)
-mnb_score=mnb.score(X_test,y_test)
-y_predict=mnb.predict(X_test)
-y_true=y_test
 nb_train=mnb.predict(X_train)
 nb_test=mnb.predict(X_test)
 from sklearn.neural_network import MLPClassifier
@@ -505,8 +481,6 @@ nb_train=nb_train.reshape(-1, 1)
 nn_train=nn_train.reshape(-1, 1)
 mlp_train=mlp_train.reshape(-1, 1)
 dt_test=dt_test.reshape(-1, 1)
-et_test=et_test.reshape(-1, 1)
-rf_test=rf_test.reshape(-1, 1)
 nn_test=nn_test.reshape(-1, 1)
 nb_test=nb_test.reshape(-1, 1)
 mlp_test=mlp_test.reshape(-1, 1)
